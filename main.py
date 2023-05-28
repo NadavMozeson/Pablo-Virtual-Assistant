@@ -1,6 +1,5 @@
 import speech_recognition as sr
-from pablo import openGui
-
+from pabloGUI import openGui, create_icon
 
 def heyPablo():
 
@@ -26,4 +25,5 @@ def heyPablo():
             openGui()
 
 if __name__ == '__main__':
-    heyPablo()
+    #heyPablo()
+    create_icon()
