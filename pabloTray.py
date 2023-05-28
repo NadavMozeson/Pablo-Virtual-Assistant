@@ -28,12 +28,6 @@ def on_exit(icon, item):
     if root:
         root.quit()
 
-def minimize_window(event):
-    root.withdraw()
-
-def unmap_window(event):
-    root.iconify()
-
 def listen():
     r = sr.Recognizer()
     with sr.Microphone() as source:
