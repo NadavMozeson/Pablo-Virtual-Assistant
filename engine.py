@@ -1,5 +1,5 @@
 import webbrowser as wb
-from loadConfig import load_config
+from loadConfig import load_config, update_config
 import urllib.parse
 
 def preform(str):
@@ -9,5 +9,7 @@ def preform(str):
         for i in websites.keys():
             if f"open {i}" in str.lower():
                 wb.open_new_tab(websites[i])
-    if "google search" in str.lower():
+    elif "google search" in str.lower():
         wb.open_new_tab(f"https://www.google.com/search?q={urllib.parse.quote(str.lower().split('google search')[1])}")
+    elif "call me" in str.lower():
+        update_config("name", str.lower().split('call me ')[1])
