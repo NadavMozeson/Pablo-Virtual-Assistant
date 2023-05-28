@@ -34,25 +34,29 @@ def minimize_window(event):
 def unmap_window(event):
     root.iconify()
 
+def listen():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source)
+        print("Listening...")
+        audio = r.listen(source)
+    try:
+        print("Recognizing...")
+        query = r.recognize_google(audio, language='en-IN')
+        print(f"User said: {query}\n")
+        preform(query)
+    except Exception as e:
+        print("Say that again please...")
+
+def listen_thread():
+    threading.Thread(target=listen).start()
+
+def speak(audio):
+    engine.say(audio)
+    engine.runAndWait()
+
 def openGui():
     global root
-
-    def listen():
-        r = sr.Recognizer()
-        with sr.Microphone() as source:
-            print("Listening...")
-            audio = r.listen(source)
-        try:
-            print("Recognizing...")
-            query = r.recognize_google(audio, language='en-IN')
-            print(f"User said: {query}\n")
-            preform(query)
-        except Exception as e:
-            print("Say that again please...")
-
-    def speak(audio):
-        engine.say(audio)
-        engine.runAndWait()
 
     def send_message():
         preform(entry.get())
@@ -69,7 +73,7 @@ def openGui():
     entry.grid(column=0, row=1, sticky=(tk.W, tk.E))
     send_button = ttk.Button(frame, text="Send", command=send_message)
     send_button.grid(column=1, row=1, sticky=tk.W)
-    listen_button = ttk.Button(frame, text="Listen", command=listen)
+    listen_button = ttk.Button(frame, text="Listen", command=listen_thread)
     listen_button.grid(column=0, row=2, columnspan=2)
     root.columnconfigure(0, weight=1)
     root.rowconfigure(0, weight=1)
