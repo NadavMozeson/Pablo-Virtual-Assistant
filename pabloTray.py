@@ -46,8 +46,12 @@ def listen_thread():
     threading.Thread(target=listen).start()
 
 def speak(audio):
-    engine.say(audio)
-    engine.runAndWait()
+    config = load_config()
+    if config['voice-on']:
+        voices = engine.getProperty('voices')
+        engine.setProperty('voice', voices[config['voice']].id)
+        engine.say(audio)
+        engine.runAndWait()
 
 def openGui():
     global root
