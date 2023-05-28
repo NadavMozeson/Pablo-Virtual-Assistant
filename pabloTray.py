@@ -6,12 +6,15 @@ import speech_recognition as sr
 import pyttsx3
 from tkinter import ttk
 from tkinter.scrolledtext import ScrolledText
+from engine import preform
+from loadConfig import load_config
 
 engine = pyttsx3.init()
 root = None
 icon = None
 open_event = threading.Event()
 exit_event = threading.Event()
+config = load_config()
 
 def on_open(item):
     if root:
@@ -43,6 +46,7 @@ def openGui():
             print("Recognizing...")
             query = r.recognize_google(audio, language='en-IN')
             print(f"User said: {query}\n")
+            preform(query)
         except Exception as e:
             print("Say that again please...")
 
@@ -51,9 +55,7 @@ def openGui():
         engine.runAndWait()
 
     def send_message():
-        message = entry.get()
-        # Process the message here
-        print(message)
+        preform(entry.get())
         entry.delete(0, tk.END)
 
     root = tk.Tk()
@@ -76,6 +78,7 @@ def openGui():
 
     root.protocol('WM_DELETE_WINDOW', root.withdraw)
     root.geometry("+{}+{}".format(root.winfo_screenwidth() - root.winfo_reqwidth()-90, 0))
+    speak(f"Hello {config['name']}")
     root.mainloop()
 
     while True:
