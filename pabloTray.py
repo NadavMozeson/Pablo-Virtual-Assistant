@@ -1,24 +1,29 @@
 import tkinter as tk
-from PIL import Image
 import pystray
 import threading
 import speech_recognition as sr
 import pyttsx3
-from tkinter import ttk
-from tkinter.scrolledtext import ScrolledText
+import sys
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QTextEdit, QLineEdit, QPushButton, QLabel
 from engine import preform
 from loadConfig import load_config
+from PIL import ImageTk, Image
 
 engine = pyttsx3.init()
 root = None
 icon = None
+app = None
 open_event = threading.Event()
 exit_event = threading.Event()
 config = load_config()
 
 def on_open(item):
     if root:
-        root.deiconify()
+        if root and root.isVisible():
+            root.hide()
+        else:
+            root.show()
     else:
         openGui()
 
@@ -26,7 +31,7 @@ def on_exit(icon, item):
     icon.stop()
     exit_event.set()
     if root:
-        root.quit()
+        root.close()
 
 def listen():
     r = sr.Recognizer()
@@ -42,7 +47,7 @@ def listen():
     except Exception as e:
         print("Say that again please...")
 
-def listen_thread():
+def listen_thread(event):
     threading.Thread(target=listen).start()
 
 def speak(audio):
@@ -53,50 +58,82 @@ def speak(audio):
         engine.say(audio)
         engine.runAndWait()
 
+class MainWindow(QtWidgets.QMainWindow):
+    def __init__(self, temp_app):
+        super().__init__()
+        self.app = temp_app
+        self.guiElements()
+
+    def guiElements(self):
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.SplashScreen)
+        self.setGeometry(100, 100, 300, 600)
+        self.setWindowTitle("Pablo - Personal Assistant Bot")
+
+        # Configure the style settings
+        self.app.setStyle("Fusion")
+        palette = QtGui.QPalette()
+        palette.setColor(QtGui.QPalette.Window, QtGui.QColor("#3d5e6f"))
+        palette.setColor(QtGui.QPalette.Button, QtGui.QColor("#ffc579"))
+        palette.setColor(QtGui.QPalette.ButtonText, QtGui.QColor("#31323f"))
+        palette.setColor(QtGui.QPalette.Base, QtGui.QColor("#3b5667"))
+        palette.setColor(QtGui.QPalette.Text, QtGui.QColor("#dadae2"))
+        self.app.setPalette(palette)
+
+        # Create the widgets
+        frame = QtWidgets.QWidget(self)
+        frame.setObjectName("frame")
+        self.setCentralWidget(frame)
+        layout = QtWidgets.QGridLayout(frame)
+        history = QTextEdit(frame)
+        history.setReadOnly(True)
+        entry = QLineEdit(frame)
+        entry.setPlaceholderText("Send a message to Pablo...")
+        entry.setStyleSheet("""
+            QLineEdit {
+                color: #dadae2;
+            }
+            QLineEdit::placeholder {
+                color: #708494;
+            }
+        """)
+        send_button = QPushButton("Send", frame)
+        image = QtGui.QImage("logo.png")
+        image = image.scaled(100, 100, QtCore.Qt.KeepAspectRatio)
+        photo = QtGui.QPixmap.fromImage(image)
+        listen_button = QLabel(frame)
+        listen_button.setPixmap(photo)
+
+        # Add the widgets to the layout
+        layout.addWidget(history, 0, 0, 1, 2)
+        layout.addWidget(entry, 1, 0)
+        layout.addWidget(send_button, 1, 1)
+        layout.addWidget(listen_button, 2, 0, 1, 2)
+
+        screen_geometry = self.app.desktop().availableGeometry()
+        root_geometry = self.geometry()
+        x = screen_geometry.width() - root_geometry.width()
+        self.move(x, 0)
+
+    def closeEvent(self, event):
+        if not exit_event.is_set():
+            event.ignore()
+            self.hide()
+        else:
+            event.accept()
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.WindowDeactivate:
+            self.hide()
+        return super().event(event)
+
 def openGui():
-    global root
+    global root, app
 
-    def send_message():
-        preform(entry.get())
-        entry.delete(0, tk.END)
+    app = QtWidgets.QApplication(sys.argv)
 
-    root = tk.Tk()
-    root.title("Pablo - Personal Assistant Bot")
-    frame = ttk.Frame(root, padding="10")
-    frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
-    history = ScrolledText(frame, width=30, height=10, wrap=tk.WORD)
-    history.grid(column=0, row=0, columnspan=2, sticky=(tk.W, tk.E))
-    history.config(state='disabled')
-    entry = ttk.Entry(frame, width=20)
-    entry.grid(column=0, row=1, sticky=(tk.W, tk.E))
-    send_button = ttk.Button(frame, text="Send", command=send_message)
-    send_button.grid(column=1, row=1, sticky=tk.W)
-    listen_button = ttk.Button(frame, text="Listen", command=listen_thread)
-    listen_button.grid(column=0, row=2, columnspan=2)
-    root.columnconfigure(0, weight=1)
-    root.rowconfigure(0, weight=1)
-    frame.columnconfigure(0, weight=3)
-    frame.columnconfigure(1, weight=1)
-
-    root.protocol('WM_DELETE_WINDOW', root.withdraw)
-    root.geometry("+{}+{}".format(root.winfo_screenwidth() - root.winfo_reqwidth()-90, 0))
-    speak(f"Hello {config['name']}")
-    root.mainloop()
-
-    while True:
-        try:
-            root.update()
-        except tk.TclError:
-            break
-
-        if open_event.is_set():
-            root.deiconify()
-            open_event.clear()
-
-        if exit_event.is_set():
-            break
-
-        root.after(100)
+    root = MainWindow(app)
+    root.show()
+    sys.exit(app.exec_())
 
 def create_icon():
     global icon
